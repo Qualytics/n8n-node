@@ -1,6 +1,6 @@
 # n8n-nodes-qualytics
 
-This is an n8n community node. It lets you use GitHub Issues in your n8n workflows.
+This is an n8n community node for [Qualytics](https://www.qualytics.io/), a data quality platform. It lets you trigger n8n workflows when Qualytics Flow Actions fire.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/sustainable-use-license/) workflow automation platform.
 
@@ -8,7 +8,7 @@ This is an n8n community node. It lets you use GitHub Issues in your n8n workflo
 [Operations](#operations)
 [Credentials](#credentials)
 [Compatibility](#compatibility)
-[Usage](#usage)
+[Setup](#setup)
 [Resources](#resources)
 
 ## Installation
@@ -17,57 +17,122 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 ## Operations
 
-- Issues
-    - Get an issue
-    - Get many issues in a repository
-    - Create a new issue
-- Issue Comments
-    - Get many issue comments
+### Qualytics Trigger
+
+A webhook trigger node that starts your workflow when Qualytics sends a Flow Action event.
+
+**Trigger Events:**
+- Flow triggered (anomaly detection, quality checks, etc.)
+
+**Available Data:**
+- Flow ID and name
+- Datastore ID and name
+- Trigger type and timestamp
+- Anomaly details (ID, type, description, affected fields)
+- Container information
+- Quality check results
+- Link to Qualytics UI
 
 ## Credentials
 
-You can use either access token or OAuth2 to use this node.
+### Webhook Secret (Optional)
 
-### Access token
+For additional security, you can configure a shared secret to validate incoming webhook requests:
 
-1. Open your GitHub profile [Settings](https://github.com/settings/profile).
-2. In the left navigation, select [Developer settings](https://github.com/settings/apps).
-3. In the left navigation, under Personal access tokens, select Tokens (classic).
-4. Select Generate new token > Generate new token (classic).
-5. Enter a descriptive name for your token in the Note field, like n8n integration.
-6. Select the Expiration you'd like for the token, or select No expiration.
-7. Select Scopes for your token. For most of the n8n GitHub nodes, add the `repo` scope.
-    - A token without assigned scopes can only access public information.
-8. Select Generate token.
-9. Copy the token.
+1. In n8n, set Authentication to "Webhook Secret"
+2. Enter a secret value in the Qualytics API credentials
+3. Configure the same secret in your Qualytics n8n integration
+4. Qualytics will send the secret in the `X-Qualytics-Secret` header
 
-Refer to [Creating a personal access token (classic)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) for more information. Refer to Scopes for OAuth apps for more information on GitHub scopes.
-
-![Generated Access token in GitHub](https://docs.github.com/assets/cb-17251/mw-1440/images/help/settings/personal-access-tokens.webp)
-
-### OAuth2
-
-If you're self-hosting n8n, create a new GitHub [OAuth app](https://docs.github.com/en/apps/oauth-apps):
-
-1. Open your GitHub profile [Settings](https://github.com/settings/profile).
-2. In the left navigation, select [Developer settings](https://github.com/settings/apps).
-3. In the left navigation, select OAuth apps.
-4. Select New OAuth App.
-    - If you haven't created an app before, you may see Register a new application instead. Select it.
-5. Enter an Application name, like n8n integration.
-6. Enter the Homepage URL for your app's website.
-7. If you'd like, add the optional Application description, which GitHub displays to end-users.
-8. From n8n, copy the OAuth Redirect URL and paste it into the GitHub Authorization callback URL.
-9. Select Register application.
-10. Copy the Client ID and Client Secret this generates and add them to your n8n credential.
-
-Refer to the [GitHub Authorizing OAuth apps documentation](https://docs.github.com/en/apps/oauth-apps/using-oauth-apps/authorizing-oauth-apps) for more information on the authorization process.
+If the secrets do not match, the webhook request will be rejected with a 401 Unauthorized response.
 
 ## Compatibility
 
-Compatible with n8n@1.60.0 or later
+Compatible with n8n version 1.60.0 or later.
+
+## Setup
+
+### In Qualytics
+
+1. Navigate to Settings > Integrations
+2. Add a new n8n integration
+3. Enter the webhook URL from your n8n Qualytics Trigger node
+4. (Optional) Set a webhook secret for authentication
+5. Save the integration
+
+### In n8n
+
+1. Add a "Qualytics Trigger" node to your workflow
+2. Copy the webhook URL shown in the node
+3. (Optional) Configure webhook secret authentication
+4. (Optional) Filter to specific event types
+5. Activate your workflow
+
+### In Your Qualytics Flow
+
+1. Edit your Flow
+2. Add a new Action
+3. Select "Notification" action type
+4. Choose your n8n integration
+5. Save the Flow
+
+## Example Workflow
+
+```
+[Qualytics Trigger] → [IF anomaly count > 10] → [Slack] Send alert
+                                              → [Email] Send report
+```
+
+## Payload Structure
+
+The Qualytics Trigger node receives the following JSON payload:
+
+```json
+{
+  "event": "qualytics.flow.triggered",
+  "flow": {
+    "id": 123,
+    "name": "My Flow"
+  },
+  "datastore": {
+    "id": 456,
+    "name": "Production DB"
+  },
+  "trigger": {
+    "type": "Anomaly",
+    "timestamp": "2026-01-25T12:00:00Z"
+  },
+  "context": {
+    "anomalies": [
+      {
+        "id": 1,
+        "type": "unexpected_value",
+        "description": "Value outside expected range",
+        "container": "orders",
+        "field": "amount",
+        "created_at": "2026-01-25T11:59:00Z"
+      }
+    ],
+    "containers": [
+      {
+        "id": 1,
+        "name": "orders"
+      }
+    ],
+    "quality_checks": [
+      {
+        "id": 1,
+        "name": "Amount Range Check",
+        "status": "failed"
+      }
+    ]
+  },
+  "target_link": "https://app.qualytics.io/..."
+}
+```
 
 ## Resources
 
-* [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
-* [GitHub API docs](https://docs.github.com/en/rest/issues)
+* [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
+* [Qualytics documentation](https://docs.qualytics.io/)
+* [Qualytics n8n integration guide](https://docs.qualytics.io/integrations/n8n)
