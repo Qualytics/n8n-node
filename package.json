@@ -1,6 +1,6 @@
 {
 	"name": "@qualytics/n8n-nodes-qualytics",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "n8n community node for Qualytics data quality platform integration",
 	"license": "MIT",
 	"homepage": "https://github.com/Qualytics/n8n-node-qualytics",
